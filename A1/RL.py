@@ -65,11 +65,11 @@ class RL:
             Q = initialQ
             policy = np.zeros(self.mdp.nStates, int)
 
+            #counterStateActionPair = np.zeros((self.mdp.nActions, self.mdp.nStates), dtype=np.int)
 
             cumulative_rewards = np.zeros(nEpisodes)
 
             for episode in range(nEpisodes):
-
                 s = s0  # Starting each episode at s0 according to specifications
                 counterStateActionPair = np.zeros((self.mdp.nActions, self.mdp.nStates), dtype=np.int)
 
@@ -123,15 +123,12 @@ class RL:
 
                     #   End of Action selection
 
-                    #print("action: " + str(a) + " at State " + str(s))
-
                     # Execute a
                     [reward, nextState] = self.sampleRewardAndNextState(s, a)
-                    #print("Next State : " + str(nextState))
-                    #print("Reward : " + str(reward))
-                    counterStateActionPair[a][s] += 1
 
+                    counterStateActionPair[a][s] += 1
                     learningRate = (1.0 / counterStateActionPair[a][s])
+
                     Q[a][s] = Q[a][s] + (learningRate * (reward
                                                          + (self.mdp.discount * np.amax(Q[:, nextState]))
                                                          - Q[a][s]
@@ -140,14 +137,6 @@ class RL:
                     cumulative_rewards[episode] += (np.power(self.mdp.discount, t) * reward)
                     policy[s] = a
                     s = nextState
-
-                """
-                print("Q : " + str(Q))
-                print("Policy : " + str(policy))
-                print("\n")
-                """
-
-            #print("Cumulative Rewards : " + str(cumulative_rewards))
 
             avg_cumulative_rewards += cumulative_rewards
 
