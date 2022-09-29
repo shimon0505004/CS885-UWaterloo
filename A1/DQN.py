@@ -178,14 +178,124 @@ def plot_arrays(vars, color, label):
     plt.plot(range(len(mean)), mean, color=color, label=label)
     plt.fill_between(range(len(mean)), np.maximum(mean-std, 0), np.minimum(mean+std,200), color=color, alpha=0.3)
 
+
 if __name__ == "__main__":
 
-    # Train for different seeds
-    curves = []
-    for seed in SEEDS:
-        curves += [train(seed)]
+    # PART III.1: Target Network Update Frequency
 
-    # Plot the curve for the given seeds
-    plot_arrays(curves, 'b', 'dqn')
+    PREV_TARGET_UPDATE_FREQ = TARGET_UPDATE_FREQ
+    colors = ['red','blue','green','black']
+    targetUpdateFrequencies = [1,10,50,100]
+
+    for i in range(len(targetUpdateFrequencies)):
+        TARGET_UPDATE_FREQ = targetUpdateFrequencies[i]  # Target network update frequency
+
+        # Train for different seeds
+        curves = []
+        for seed in SEEDS:
+            curves += [train(seed)]
+
+        label = "Episode : " +  str(TARGET_UPDATE_FREQ)
+
+        """
+        # Plot the curve for the given seeds
+        plot_arrays(curves, colors[i], label)
+        """
+
+        # To reduce stochasticity in the results, reporting curves that are the average of 5 runs
+        # corresponding to 5 random seeds.
+        mean = np.mean(curves, axis=0)
+        plt.plot(range(len(mean)), mean, color=colors[i], label=label)
+
+
     plt.legend(loc='best')
+    plt.title("PartIII DQN Graph 1: Target Network Update Frequency")
+    plt.xlabel("Episode #")
+    plt.ylabel("Average Cumulative Discounted Reward of last 25 Episode")
+
+    plt.savefig('Part3_Prob1.png', bbox_inches='tight')
     plt.show()
+    plt.close()
+    plt.cla()
+    plt.clf()
+
+    TARGET_UPDATE_FREQ = PREV_TARGET_UPDATE_FREQ
+
+    # PART III.2: Mini-batch size
+
+    PREV_MINIBATCH_SIZE = MINIBATCH_SIZE
+    colors = ['red', 'blue', 'green', 'black']
+    targetMinibatchSize = [1, 10, 50, 100]
+
+    for i in range(len(targetUpdateFrequencies)):
+        MINIBATCH_SIZE = targetMinibatchSize[i]  # Target network update frequency
+
+        # Train for different seeds
+        curves = []
+        for seed in SEEDS:
+            curves += [train(seed)]
+
+        label = "minibatch Size: " + str(MINIBATCH_SIZE)
+
+        """
+        # Plot the curve for the given seeds
+        plot_arrays(curves, colors[i], label)
+        """
+
+        # To reduce stochasticity in the results, reporting curves that are the average of 5 runs
+        # corresponding to 5 random seeds.
+        mean = np.mean(curves, axis=0)
+        plt.plot(range(len(mean)), mean, color=colors[i], label=label)
+
+    plt.legend(loc='best')
+    plt.title("PartIII DQN Graph 2: Mini-batch size")
+    plt.xlabel("Episode #")
+    plt.ylabel("Average Cumulative Discounted Reward of last 25 Episode")
+
+    plt.savefig('Part3_Prob2.png', bbox_inches='tight')
+    plt.show()
+    plt.close()
+    plt.cla()
+    plt.clf()
+
+    MINIBATCH_SIZE = PREV_MINIBATCH_SIZE
+
+
+    # PART III.3: Training Epoch
+
+    PREV_TRAIN_EPOCHS = TRAIN_EPOCHS
+    colors = ['red', 'blue', 'green', 'black']
+    epochs = [1, 5, 10, 50]
+
+    for i in range(len(epochs)):
+        TRAIN_EPOCHS = epochs[i]  # Target network update frequency
+
+        # Train for different seeds
+        curves = []
+        for seed in SEEDS:
+            curves += [train(seed)]
+
+        label = "Epochs: " + str(TRAIN_EPOCHS)
+
+        """
+        # Plot the curve for the given seeds
+        plot_arrays(curves, colors[i], label)
+        """
+
+        # To reduce stochasticity in the results, reporting curves that are the average of 5 runs
+        # corresponding to 5 random seeds.
+        mean = np.mean(curves, axis=0)
+        plt.plot(range(len(mean)), mean, color=colors[i], label=label)
+
+    plt.legend(loc='best')
+    plt.title("PartIII DQN Graph 3: Epochs")
+    plt.xlabel("Episode #")
+    plt.ylabel("Average Cumulative Discounted Reward of last 25 Episode")
+
+    plt.savefig('Part3_Prob3.png', bbox_inches='tight')
+    plt.show()
+    plt.close()
+    plt.cla()
+    plt.clf()
+
+    TRAIN_EPOCHS = PREV_TRAIN_EPOCHS
