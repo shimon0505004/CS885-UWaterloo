@@ -114,7 +114,10 @@ def train(S,A,returns, old_log_probs):
         n = torch.arange(S.size(0)).to(DEVICE)
 
         ratio = torch.exp(log_probs - old_log_probs)
+        #print(str(i) + " " + str(ratio))
+
         clipped_ratio = torch.clip(ratio, min=(1-CLIP_PARAM), max=(1+CLIP_PARAM))
+
         objective = -torch.max(torch.mean(torch.minimum((ratio * delta), (clipped_ratio * delta))))
 
         scaler.scale(w).backward(retain_graph=True)
