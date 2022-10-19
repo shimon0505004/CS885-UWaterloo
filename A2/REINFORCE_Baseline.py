@@ -45,7 +45,7 @@ elif "mountain_car" in args.mode:
     LEARNING_RATE1 = 1e-3  # Learning rate for value optimizer
     LEARNING_RATE2 = 1e-3  # Learning rate for actor optimizer
 
-EPOCHS = 800  # Total number of epochs to learn over
+EPOCHS = 1200  # Total number of epochs to learn over
 EPISODES_PER_EPOCH = 1  # Epsides per epoch
 TEST_EPISODES = 10  # Test episodes
 HIDDEN = 32  # Hidden size
@@ -92,14 +92,15 @@ def train(S, A, returns):
     # ....
 
     scaler = torch.cuda.amp.GradScaler()
-    OPT1.zero_grad()
-    OPT2.zero_grad()
 
     # policy gradient with baseline
     # apply accumulated gradient across the episode
     for i in range(POLICY_TRAIN_ITERS):
         # implement objective and update for policy
         # should be similar to REINFORCE + small change
+
+        OPT1.zero_grad()
+        OPT2.zero_grad()
 
         log_probs = torch.nn.LogSoftmax(dim=-1)(pi(S)).gather(1, A.view(-1, 1)).view(-1)
         n = torch.arange(S.size(0)).to(DEVICE)

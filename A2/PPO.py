@@ -130,7 +130,6 @@ def train(S,A,returns, old_log_probs):
 
         scaler.update()
 
-        
     #################################
 
 # Play episodes

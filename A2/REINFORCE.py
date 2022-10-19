@@ -43,7 +43,7 @@ elif "mountain_car" in args.mode:
     GAMMA = 0.9  # Discount factor in episodic reward objective
     LEARNING_RATE = 1e-3  # Learning rate for actor optimizer
 
-EPOCHS = 800  # Total number of iterations to learn over
+EPOCHS = 1200  # Total number of iterations to learn over
 EPISODES_PER_EPOCH = 1  # Episodes per epoch (number of episodes observed, and batched)
 TEST_EPISODES = 10  # Test episodes
 HIDDEN = 32  # Hidden size
