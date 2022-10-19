@@ -1,0 +1,17 @@
+name: cs885a2p3
+dependencies:
+  - python=3.10.4
+  - cudatoolkit=11.3.1
+  - pytorch
+  - tqdm
+  - pip
+  - pip:
+    - gym==0.26.1
+    - gym-notices==0.0.8
+    - matplotlib==3.5.2
+    - numpy==1.23.1
+    - pillow==9.2.0
+    - pip==22.1.2
+    - torch==1.12.1
+    - torchaudio==0.12.1
+    - torchvision==0.13.1
