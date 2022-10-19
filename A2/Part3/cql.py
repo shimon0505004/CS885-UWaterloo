@@ -54,7 +54,25 @@ class CQLDQN(nn.Module):
         """
         states, actions, rewards, next_states, dones = batch
         
-        return 0, 0, 0
+        with torch.no_grad():
+              q_targets_next = self.target_q_net(next_states).detach().max(1)[0].unsqueeze(1)
+              q_targets = rewards + (1 - dones) * self.gamma * q_targets_next
+        q_values = self.q_net(states)
+        q_pred = q_values.gather(1, actions.unsqueeze(1))
+        q_pi = q_values.max(1)[0]
+
+        bellman_error = self.q_criterion(q_pred, q_targets)
+        cql_loss = (q_pi-q_pred).mean()
+        total_loss = (self.alpha * cql_loss) + bellman_error
+        
+        self.q_optimizer.zero_grad()
+        total_loss.backward()
+        self.q_optimizer.step()
+
+        #Every c(self.tau) steps, update target
+        soft_update(self.q_net, self.target_q_net, self.tau)
+        
+        return total_loss.item(), cql_loss.item(), bellman_error.item()
 
 
 class DeepQN(nn.Module):
