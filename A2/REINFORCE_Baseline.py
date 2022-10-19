@@ -91,27 +91,36 @@ def train(S,A,returns):
     # step in the episode)
     # ....
 
+    scaler = torch.cuda.amp.GradScaler()
+
     # policy gradient with baseline
     # apply accumulated gradient across the episode
     for i in range(POLICY_TRAIN_ITERS):
         # implement objective and update for policy
         # should be similar to REINFORCE + small change
-        OPT2.zero_grad()            #Initializing Pi_theta
-        OPT1.zero_grad()            #Initializing V_w
 
-        # collect pi(a | s) for trajectories
+        OPT1.zero_grad()
+        OPT2.zero_grad()
+
+        Vw_Sn = ((V(S)).view(-1))
+
+        delta = returns - Vw_Sn
+        w = -(delta * Vw_Sn).sum()
+
         log_probs = torch.nn.LogSoftmax(dim=-1)(pi(S)).gather(1, A.view(-1, 1)).view(-1)
-        delta = returns - V(S)
         n = torch.arange(S.size(0)).to(DEVICE)
 
-        w = -(delta * V(S)).sum()
-        w.backward()
-        OPT1.step()
+        objective = -((GAMMA ** n) * delta * log_probs).sum()
 
-        objective = -((GAMMA ** n) * delta * returns * log_probs).sum()
-        objective.backward()
-        OPT2.step()
+        scaler.scale(w).backward(retain_graph=True)
+        scaler.scale(objective).backward()
 
+        scaler.unscale_(OPT1)
+
+        scaler.step(OPT1)
+        scaler.step(OPT2)
+
+        scaler.update()
 
         
     #################################
