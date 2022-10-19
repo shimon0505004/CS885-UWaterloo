@@ -95,33 +95,37 @@ def train(S,A,returns, old_log_probs):
     # Implement the training of the value function
     # Use the same implementation you did in REINFORCE_Baseline.py for estimating the advantage function
     # (instead of following the PPO slides)
-
+    scaler = torch.cuda.amp.GradScaler()
 
     # PPO 
     # gradient ascent for POLICY_TRAIN_ITERS steps
     for i in range(POLICY_TRAIN_ITERS):
         # implement objective and update for policy
         # follow the slides for this
-        print("TODO")
-        OPT2.zero_grad()            #Initializing Pi_theta
-        OPT1.zero_grad()            #Initializing V_w
+
+        OPT1.zero_grad()
+        OPT2.zero_grad()
+
+        Vw_Sn = (V(S)).view(-1)
+        delta = returns - Vw_Sn
+        w = -(delta * Vw_Sn).sum()
 
         log_probs = torch.nn.LogSoftmax(dim=-1)(pi(S)).gather(1, A.view(-1, 1)).view(-1)
-        delta = returns - V(S)
-        w = -(delta * V(S)).sum()
-        w.backward()
-        OPT1.step()
+        n = torch.arange(S.size(0)).to(DEVICE)
 
-        A = delta
-        objective = -(torch.minimum(
-                        ((torch.exp(log_probs-old_log_probs)) * A),
-                        (torch.clip(torch.exp(log_probs-old_log_probs),
-                                    min=(1-CLIP_PARAM),
-                                    max=(1+CLIP_PARAM)
-                                    ) * A))).mean()
-        objective.backward()
-        OPT2.step()
+        ratio = torch.exp(log_probs - old_log_probs)
+        clipped_ratio = torch.clip(ratio, min=(1-CLIP_PARAM), max=(1+CLIP_PARAM))
+        objective = -torch.max(torch.mean(torch.minimum((ratio * delta), (clipped_ratio * delta))))
 
+        scaler.scale(w).backward(retain_graph=True)
+        scaler.scale(objective).backward()
+
+        scaler.unscale_(OPT1)
+
+        scaler.step(OPT1)
+        scaler.step(OPT2)
+
+        scaler.update()
 
         
     #################################
