@@ -28,6 +28,7 @@ TRAIN_EPOCHS = 50       # Training epochs
 OBS_N = None
 ACT_N = None
 Pi = None
+BETA = 1                # Beta value
 
 # Create environment
 # Create replay buffer
@@ -65,7 +66,7 @@ def policy(env, obs):
     return np.random.choice(ACT_N, p = probs.cpu().detach().numpy())
 
 # Training function
-def update_networks(epi, buf, Pi, V, OPTPi, OPTV, constraints):
+def update_networks(epi, buf, Pi, V, OPTPi, OPTV, all_constraints):
     
     # Sample from buffer
     S, A, returns, old_log_probs = buf.sample(MINIBATCH_SIZE)
@@ -84,11 +85,16 @@ def update_networks(epi, buf, Pi, V, OPTPi, OPTV, constraints):
     clipped_ratio = torch.clamp(ratio, 1-CLIP_PARAM, 1+CLIP_PARAM)
     ppo_obj = torch.min(ratio * advantages, clipped_ratio * advantages).mean()
     objective2 = -ppo_obj
+
+    for discounted_constraints in all_constraints:
+        print(str(len(log_probs)))
+        if discounted_constraints[0] > BETA:
+            print(str(len(discounted_constraints)) + " " + str(len(log_probs)))
+            objective2 += (discounted_constraints * log_probs).sum()
+
     objective2.backward()
     OPTPi.step()
 
-    #for i in range(constraints):
-        #if constraints[i][0] >
 
 
 # Play episodes
@@ -119,6 +125,7 @@ def train(seed):
             
             # Play an episode and log episodic reward
             S, A, R, Rc = utils.envs.play_episode(env, policy, constraint=True)
+
             all_S += S[:-1] # ignore last state
             all_A += A
             
@@ -139,7 +146,6 @@ def train(seed):
                        
         S, A = t.f(np.array(all_S)), t.l(np.array(all_A))
         returns = torch.cat(all_returns, dim=0).flatten()
-        constraints = torch.cat(all_constraints, dim=0).flatten()
 
         # add to replay buffer
         log_probs = torch.nn.LogSoftmax(dim=-1)(Pi(S)).gather(1, A.view(-1, 1)).view(-1)
@@ -147,7 +153,7 @@ def train(seed):
 
         # update networks
         for i in range(TRAIN_EPOCHS):
-            update_networks(epi, buf, Pi, V, OPTPi, OPTV, constraints)
+            update_networks(epi, buf, Pi, V, OPTPi, OPTV, all_constraints)
 
         # evaluate
         Rews = []
