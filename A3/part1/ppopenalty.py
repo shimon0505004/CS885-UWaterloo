@@ -65,7 +65,7 @@ def policy(env, obs):
     return np.random.choice(ACT_N, p = probs.cpu().detach().numpy())
 
 # Training function
-def update_networks(epi, buf, Pi, V, OPTPi, OPTV):
+def update_networks(epi, buf, Pi, V, OPTPi, OPTV, constraints):
     
     # Sample from buffer
     S, A, returns, old_log_probs = buf.sample(MINIBATCH_SIZE)
@@ -87,6 +87,10 @@ def update_networks(epi, buf, Pi, V, OPTPi, OPTV):
     objective2.backward()
     OPTPi.step()
 
+    #for i in range(constraints):
+        #if constraints[i][0] >
+
+
 # Play episodes
 # Training function
 def train(seed):
@@ -105,10 +109,12 @@ def train(seed):
     print("Training:")
     pbar = tqdm.trange(EPOCHS)
     for epi in pbar:
-
+        #print(str(epi) + " " )
         # Collect experience
         all_S, all_A = [], []
         all_returns = []
+        all_constraints = []
+
         for epj in range(EPISODES_PER_EPOCH):
             
             # Play an episode and log episodic reward
@@ -118,13 +124,22 @@ def train(seed):
             
             # Create returns 
             discounted_rewards = copy.deepcopy(R)
+            # Create constraints
+            discounted_constraints = copy.deepcopy(Rc)
+
             for i in range(len(R)-1)[::-1]:
                 discounted_rewards[i] += GAMMA * discounted_rewards[i+1]
+                discounted_constraints[i] += GAMMA * discounted_constraints[i+1]
+
             discounted_rewards = t.f(discounted_rewards)
+            discounted_constraints = t.f(discounted_constraints)
+
             all_returns += [discounted_rewards]
+            all_constraints += [discounted_constraints]
                        
         S, A = t.f(np.array(all_S)), t.l(np.array(all_A))
         returns = torch.cat(all_returns, dim=0).flatten()
+        constraints = torch.cat(all_constraints, dim=0).flatten()
 
         # add to replay buffer
         log_probs = torch.nn.LogSoftmax(dim=-1)(Pi(S)).gather(1, A.view(-1, 1)).view(-1)
@@ -132,7 +147,7 @@ def train(seed):
 
         # update networks
         for i in range(TRAIN_EPOCHS):
-            update_networks(epi, buf, Pi, V, OPTPi, OPTV)
+            update_networks(epi, buf, Pi, V, OPTPi, OPTV, constraints)
 
         # evaluate
         Rews = []
