@@ -66,7 +66,7 @@ def policy(env, obs):
     return np.random.choice(ACT_N, p = probs.cpu().detach().numpy())
 
 # Training function
-def update_networks(epi, buf, Pi, V, OPTPi, OPTV, all_constraints):
+def update_networks(epi, buf, Pi, V, OPTPi, OPTV, penalty):
     
     # Sample from buffer
     S, A, returns, old_log_probs = buf.sample(MINIBATCH_SIZE)
@@ -86,11 +86,7 @@ def update_networks(epi, buf, Pi, V, OPTPi, OPTV, all_constraints):
     ppo_obj = torch.min(ratio * advantages, clipped_ratio * advantages).mean()
     objective2 = -ppo_obj
 
-    for discounted_constraints in all_constraints:
-        print(str(len(log_probs)))
-        if discounted_constraints[0] > BETA:
-            print(str(len(discounted_constraints)) + " " + str(len(log_probs)))
-            objective2 += (discounted_constraints * log_probs).sum()
+    objective2 += penalty
 
     objective2.backward()
     OPTPi.step()
@@ -120,6 +116,7 @@ def train(seed):
         all_S, all_A = [], []
         all_returns = []
         all_constraints = []
+        all_I = []
 
         for epj in range(EPISODES_PER_EPOCH):
             
@@ -138,6 +135,11 @@ def train(seed):
                 discounted_rewards[i] += GAMMA * discounted_rewards[i+1]
                 discounted_constraints[i] += GAMMA * discounted_constraints[i+1]
 
+            if discounted_constraints[0] > BETA:
+                all_I += [t.f(np.ones(len(Rc)))]
+            else:
+                all_I += [t.f(np.zeros(len(Rc)))]
+
             discounted_rewards = t.f(discounted_rewards)
             discounted_constraints = t.f(discounted_constraints)
 
@@ -146,14 +148,17 @@ def train(seed):
                        
         S, A = t.f(np.array(all_S)), t.l(np.array(all_A))
         returns = torch.cat(all_returns, dim=0).flatten()
+        constraints = torch.cat(all_constraints, dim=0).flatten()
+        Is = torch.cat(all_I, dim=0).flatten()
 
         # add to replay buffer
         log_probs = torch.nn.LogSoftmax(dim=-1)(Pi(S)).gather(1, A.view(-1, 1)).view(-1)
         buf.add(S, A, returns, log_probs.detach())
+        penalty = (Is * constraints * log_probs.detach()).mean()
 
         # update networks
         for i in range(TRAIN_EPOCHS):
-            update_networks(epi, buf, Pi, V, OPTPi, OPTV, all_constraints)
+            update_networks(epi, buf, Pi, V, OPTPi, OPTV, penalty)
 
         # evaluate
         Rews = []
