@@ -181,4 +181,5 @@ if __name__ == "__main__":
     plot_arrays(ax[0], curves, 'b', 'ppo')
     plot_arrays(ax[1], curvesc, 'b', 'ppo')
     plt.legend(loc='best')
+    plt.savefig("ppo.png")
     plt.show()

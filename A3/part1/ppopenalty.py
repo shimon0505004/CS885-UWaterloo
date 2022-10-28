@@ -85,7 +85,6 @@ def update_networks(epi, buf, Pi, V, OPTPi, OPTV, penalty):
     clipped_ratio = torch.clamp(ratio, 1-CLIP_PARAM, 1+CLIP_PARAM)
     ppo_obj = torch.min(ratio * advantages, clipped_ratio * advantages).mean()
     objective2 = -ppo_obj
-
     objective2 += penalty
 
     objective2.backward()
@@ -116,7 +115,7 @@ def train(seed):
         all_S, all_A = [], []
         all_returns = []
         all_constraints = []
-        all_I = []
+        #all_I = []
 
         for epj in range(EPISODES_PER_EPOCH):
             
@@ -125,7 +124,7 @@ def train(seed):
 
             all_S += S[:-1] # ignore last state
             all_A += A
-            
+
             # Create returns 
             discounted_rewards = copy.deepcopy(R)
             # Create constraints
@@ -136,12 +135,14 @@ def train(seed):
                 discounted_constraints[i] += GAMMA * discounted_constraints[i+1]
 
             if discounted_constraints[0] > BETA:
-                all_I += [t.f(np.ones(len(Rc)))]
+                discounted_constraints *= np.ones(len(Rc))
             else:
-                all_I += [t.f(np.zeros(len(Rc)))]
+                discounted_constraints *= np.zeros(len(Rc))
 
             discounted_rewards = t.f(discounted_rewards)
             discounted_constraints = t.f(discounted_constraints)
+
+            #print("Discounted Constraints: " + str(discounted_constraints))
 
             all_returns += [discounted_rewards]
             all_constraints += [discounted_constraints]
@@ -149,12 +150,11 @@ def train(seed):
         S, A = t.f(np.array(all_S)), t.l(np.array(all_A))
         returns = torch.cat(all_returns, dim=0).flatten()
         constraints = torch.cat(all_constraints, dim=0).flatten()
-        Is = torch.cat(all_I, dim=0).flatten()
 
         # add to replay buffer
         log_probs = torch.nn.LogSoftmax(dim=-1)(Pi(S)).gather(1, A.view(-1, 1)).view(-1)
         buf.add(S, A, returns, log_probs.detach())
-        penalty = (Is * constraints * log_probs.detach()).mean()
+        penalty = (constraints * log_probs.detach()).mean()
 
         # update networks
         for i in range(TRAIN_EPOCHS):
@@ -195,16 +195,26 @@ if __name__ == "__main__":
     fig.set_figheight(5)
     fig.set_figwidth(10)
 
-    # Train for different seeds
-    curves = []
-    curvesc = []
-    for seed in SEEDS:
-        R, Rc = train(seed)
-        curves += [R]
-        curvesc += [Rc]
+    BETA_PREVIOUS = BETA
+    BETA_VALUES = [1, 5, 10]
+    COLOR_VALUES = ['g', 'r', 'k']
+    for i in range(3):
+        BETA = BETA_VALUES[i]
+        # Train for different seeds
+        curves = []
+        curvesc = []
+        for seed in SEEDS:
+            R, Rc = train(seed)
+            curves += [R]
+            curvesc += [Rc]
 
-    # Plot the curve for the given seeds
-    plot_arrays(ax[0], curves, 'b', 'ppo')
-    plot_arrays(ax[1], curvesc, 'b', 'ppo')
+        label = "ppo-penalty-" + str(BETA)
+        # Plot the curve for the given seeds
+        plot_arrays(ax[0], curves, COLOR_VALUES[i], label)
+        plot_arrays(ax[1], curvesc, COLOR_VALUES[i], label)
+
+    BETA = BETA_PREVIOUS
+
     plt.legend(loc='best')
+    plt.savefig("ppopenalty.png")
     plt.show()
