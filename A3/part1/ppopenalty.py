@@ -85,7 +85,7 @@ def update_networks(epi, buf, Pi, V, OPTPi, OPTV, penalty):
     clipped_ratio = torch.clamp(ratio, 1-CLIP_PARAM, 1+CLIP_PARAM)
     ppo_obj = torch.min(ratio * advantages, clipped_ratio * advantages).mean()
     objective2 = -ppo_obj
-    objective2 += penalty
+    objective2 = objective2 + penalty
 
     objective2.backward()
     OPTPi.step()
