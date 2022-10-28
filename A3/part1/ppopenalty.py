@@ -114,8 +114,10 @@ def train(seed):
         # Collect experience
         all_S, all_A = [], []
         all_returns = []
-        all_constraints = []
+        all_G_c_n = []
+
         #all_I = []
+        all_lengths = []
 
         for epj in range(EPISODES_PER_EPOCH):
             
@@ -134,27 +136,36 @@ def train(seed):
                 discounted_rewards[i] += GAMMA * discounted_rewards[i+1]
                 discounted_constraints[i] += GAMMA * discounted_constraints[i+1]
 
-            if discounted_constraints[0] > BETA:
-                discounted_constraints *= np.ones(len(Rc))
-            else:
-                discounted_constraints *= np.zeros(len(Rc))
+            all_lengths += [len(R)]
+
+            G_c_n = discounted_constraints[0]
 
             discounted_rewards = t.f(discounted_rewards)
-            discounted_constraints = t.f(discounted_constraints)
-
-            #print("Discounted Constraints: " + str(discounted_constraints))
 
             all_returns += [discounted_rewards]
-            all_constraints += [discounted_constraints]
+            all_G_c_n += [G_c_n]
                        
         S, A = t.f(np.array(all_S)), t.l(np.array(all_A))
         returns = torch.cat(all_returns, dim=0).flatten()
-        constraints = torch.cat(all_constraints, dim=0).flatten()
+
+        all_G_c_n = t.f(all_G_c_n)
 
         # add to replay buffer
         log_probs = torch.nn.LogSoftmax(dim=-1)(Pi(S)).gather(1, A.view(-1, 1)).view(-1)
-        buf.add(S, A, returns, log_probs.detach())
-        penalty = (constraints * log_probs.detach()).mean()
+        detached_log_probs = log_probs.detach()
+        buf.add(S, A, returns, detached_log_probs)
+
+        avg_log_probs = []
+        currentIdx = 0
+        for rowLength in all_lengths:
+            deltaLog = detached_log_probs[currentIdx: currentIdx+rowLength].mean()
+            currentIdx += rowLength
+            avg_log_probs += [deltaLog]
+        avg_log_probs = t.f(avg_log_probs)
+
+        penalty = t.f(0.0)
+        if(all_G_c_n[0].item() > BETA):
+            penalty = (all_G_c_n * avg_log_probs).sum()
 
         # update networks
         for i in range(TRAIN_EPOCHS):
