@@ -207,9 +207,9 @@ if __name__ == "__main__":
     fig.set_figwidth(10)
 
     BETA_PREVIOUS = BETA
-    BETA_VALUES = [1, 5, 10]
+    BETA_VALUES = [1]#[1, 5, 10]
     COLOR_VALUES = ['g', 'r', 'k']
-    for i in range(3):
+    for i in range(len(BETA_VALUES)):
         BETA = BETA_VALUES[i]
         # Train for different seeds
         curves = []
