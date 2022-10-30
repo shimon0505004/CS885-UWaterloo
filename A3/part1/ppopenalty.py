@@ -28,7 +28,7 @@ TRAIN_EPOCHS = 50       # Training epochs
 OBS_N = None
 ACT_N = None
 Pi = None
-BETA = 1                # Beta value
+penalty_param = None                # Beta value
 
 # Create environment
 # Create replay buffer
@@ -66,7 +66,7 @@ def policy(env, obs):
     return np.random.choice(ACT_N, p = probs.cpu().detach().numpy())
 
 # Training function
-def update_networks(epi, buf, Pi, V, OPTPi, OPTV, penalty):
+def update_networks(epi, buf, Pi, V, OPTPi, OPTV, penalties):
     
     # Sample from buffer
     S, A, returns, old_log_probs = buf.sample(MINIBATCH_SIZE)
@@ -85,11 +85,17 @@ def update_networks(epi, buf, Pi, V, OPTPi, OPTV, penalty):
     clipped_ratio = torch.clamp(ratio, 1-CLIP_PARAM, 1+CLIP_PARAM)
     ppo_obj = torch.min(ratio * advantages, clipped_ratio * advantages).mean()
     objective2 = -ppo_obj
-    objective2 = objective2 + penalty
-
     objective2.backward()
     OPTPi.step()
 
+    # Loop over collected episodes
+    for penalty in penalties:
+        OPTPi.zero_grad()
+        penalty_obj = penalty
+        print("penalty_obj", penalty_obj)
+        penalty_obj.backward()
+        print("print")
+        OPTPi.step()
 
 
 # Play episodes
@@ -114,9 +120,11 @@ def train(seed):
         # Collect experience
         all_S, all_A = [], []
         all_returns = []
+        all_constraints = []
+
         all_G_c_n = []
 
-        #all_I = []
+        all_I = []
         all_lengths = []
 
         for epj in range(EPISODES_PER_EPOCH):
@@ -134,42 +142,53 @@ def train(seed):
 
             for i in range(len(R)-1)[::-1]:
                 discounted_rewards[i] += GAMMA * discounted_rewards[i+1]
-                discounted_constraints[i] += GAMMA * discounted_constraints[i+1]
-
-            all_lengths += [len(R)]
-
-            G_c_n = discounted_constraints[0]
 
             discounted_rewards = t.f(discounted_rewards)
-
             all_returns += [discounted_rewards]
-            all_G_c_n += [G_c_n]
+
+            # Create constraints
+            discounted_constraints = copy.deepcopy(Rc)
+
+            for i in range(len(Rc)-1)[::-1]:
+                discounted_constraints[i] += GAMMA * discounted_constraints[i + 1]
+
+            discounted_constraints = t.f(discounted_constraints)
+            all_constraints += [discounted_constraints]
+
+            all_lengths += [len(Rc)]
+
+            if discounted_constraints[0] < penalty_param:
+                I = torch.zeros_like(discounted_constraints).to(discounted_constraints.dtype)
+            else:
+                I = torch.ones_like(discounted_constraints).to(discounted_constraints.dtype)
+
+            all_I += [I]
                        
         S, A = t.f(np.array(all_S)), t.l(np.array(all_A))
         returns = torch.cat(all_returns, dim=0).flatten()
-
-        all_G_c_n = t.f(all_G_c_n)
+        constraints = torch.cat(all_constraints, dim=0).flatten()
+        Is = torch.cat(all_I, dim=0).flatten()
 
         # add to replay buffer
         log_probs = torch.nn.LogSoftmax(dim=-1)(Pi(S)).gather(1, A.view(-1, 1)).view(-1)
-        detached_log_probs = log_probs.detach()
-        buf.add(S, A, returns, detached_log_probs)
+        buf.add(S, A, returns, log_probs.detach())
 
-        avg_log_probs = []
         currentIdx = 0
+        penalties = []
         for rowLength in all_lengths:
-            deltaLog = detached_log_probs[currentIdx: currentIdx+rowLength].mean()
-            currentIdx += rowLength
-            avg_log_probs += [deltaLog]
-        avg_log_probs = t.f(avg_log_probs)
+            log_pi_an_sn = log_probs[currentIdx: currentIdx+rowLength]
+            G_c_n = constraints[currentIdx: currentIdx+rowLength]
+            I_Gc0_greater_Bi = Is[currentIdx: currentIdx+rowLength]
+            penalty = (I_Gc0_greater_Bi*G_c_n*log_pi_an_sn).sum()
+            penalties.append(penalty)
 
-        penalty = t.f(0.0)
-        if(all_G_c_n[0].item() > BETA):
-            penalty = (all_G_c_n * avg_log_probs).sum()
+        print("Penalties", penalties)
 
         # update networks
         for i in range(TRAIN_EPOCHS):
-            update_networks(epi, buf, Pi, V, OPTPi, OPTV, penalty)
+            update_networks(epi, buf, Pi, V, OPTPi, OPTV, penalties)
+
+
 
         # evaluate
         Rews = []
@@ -206,11 +225,11 @@ if __name__ == "__main__":
     fig.set_figheight(5)
     fig.set_figwidth(10)
 
-    BETA_PREVIOUS = BETA
-    BETA_VALUES = [1]#[1, 5, 10]
+    BETA_PREVIOUS = penalty_param
+    BETA_VALUES = [1, 5, 10]
     COLOR_VALUES = ['g', 'r', 'k']
     for i in range(len(BETA_VALUES)):
-        BETA = BETA_VALUES[i]
+        penalty_param = BETA_VALUES[i]
         # Train for different seeds
         curves = []
         curvesc = []
@@ -219,13 +238,14 @@ if __name__ == "__main__":
             curves += [R]
             curvesc += [Rc]
 
-        label = "ppo-penalty-" + str(BETA)
+        label = "ppo-penalty-" + str(penalty_param)
         # Plot the curve for the given seeds
         plot_arrays(ax[0], curves, COLOR_VALUES[i], label)
         plot_arrays(ax[1], curvesc, COLOR_VALUES[i], label)
 
-    BETA = BETA_PREVIOUS
+    penalty_param = BETA_PREVIOUS
 
     plt.legend(loc='best')
     plt.savefig("ppopenalty.png")
     plt.show()
+
