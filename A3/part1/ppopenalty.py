@@ -56,8 +56,9 @@ def create_everything(seed):
         torch.nn.Linear(HIDDEN, 1)
     ).to(DEVICE)
     OPTPi = torch.optim.Adam(Pi.parameters(), lr = 1e-4)
+    OPTPi_penalty = torch.optim.Adam(Pi.parameters(), lr=1e-5)
     OPTV = torch.optim.Adam(V.parameters(), lr = 1e-3)
-    return env, test_env, buf, Pi, V, OPTPi, OPTV
+    return env, test_env, buf, Pi, V, OPTPi, OPTV, OPTPi_penalty
 
 # Policy
 def policy(env, obs):
@@ -66,7 +67,7 @@ def policy(env, obs):
     return np.random.choice(ACT_N, p = probs.cpu().detach().numpy())
 
 # Training function
-def update_networks(epi, buf, Pi, V, OPTPi, OPTV, penalties):
+def update_networks(epi, buf, Pi, V, OPTPi,OPTPi_penalty, OPTV, penalties):
     
     # Sample from buffer
     S, A, returns, old_log_probs = buf.sample(MINIBATCH_SIZE)
@@ -90,12 +91,12 @@ def update_networks(epi, buf, Pi, V, OPTPi, OPTV, penalties):
 
     # Loop over collected episodes
     for penalty in penalties:
-        OPTPi.zero_grad()
+        OPTPi_penalty.zero_grad()
         penalty_obj = penalty
         print("penalty_obj", penalty_obj)
         penalty_obj.backward()
         print("print")
-        OPTPi.step()
+        OPTPi_penalty.step()
 
 
 # Play episodes
@@ -106,7 +107,7 @@ def train(seed):
     print("Seed=%d" % seed)
 
     # Create environments, buffer, networks, optimizers
-    env, test_env, buf, Pi, V, OPTPi, OPTV = create_everything(seed)
+    env, test_env, buf, Pi, V, OPTPi, OPTV, OPTPi_penalty = create_everything(seed)
 
     # Train PPO for EPOCH times
     testRs = []
@@ -186,7 +187,7 @@ def train(seed):
 
         # update networks
         for i in range(TRAIN_EPOCHS):
-            update_networks(epi, buf, Pi, V, OPTPi, OPTV, penalties)
+            update_networks(epi, buf, Pi, V, OPTPi, OPTPi_penalty, OPTV, penalties)
 
 
 
