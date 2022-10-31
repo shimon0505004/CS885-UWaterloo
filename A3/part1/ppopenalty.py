@@ -67,7 +67,7 @@ def policy(env, obs):
     return np.random.choice(ACT_N, p = probs.cpu().detach().numpy())
 
 # Training function
-def update_networks(epi, buf, Pi, V, OPTPi,OPTPi_penalty, OPTV, penalties):
+def update_networks(epi, buf, Pi, V, OPTPi, OPTV):
     
     # Sample from buffer
     S, A, returns, old_log_probs = buf.sample(MINIBATCH_SIZE)
@@ -88,15 +88,6 @@ def update_networks(epi, buf, Pi, V, OPTPi,OPTPi_penalty, OPTV, penalties):
     objective2 = -ppo_obj
     objective2.backward()
     OPTPi.step()
-
-    # Loop over collected episodes
-    for penalty in penalties:
-        OPTPi_penalty.zero_grad()
-        penalty_obj = penalty.clone()
-        print("penalty_obj", penalty_obj)
-        penalty_obj.backward()
-        print("print")
-        OPTPi_penalty.step()
 
 
 # Play episodes
@@ -175,20 +166,22 @@ def train(seed):
         buf.add(S, A, returns, log_probs.detach())
 
         currentIdx = 0
-        penalties = []
-        for rowLength in all_lengths:
-            log_pi_an_sn = log_probs[currentIdx: currentIdx+rowLength]
-            G_c_n = constraints[currentIdx: currentIdx+rowLength]
-            I_Gc0_greater_Bi = Is[currentIdx: currentIdx+rowLength]
-            penalty = (I_Gc0_greater_Bi*G_c_n*log_pi_an_sn).sum()
-            penalties.append(penalty)
-
-        print("Penalties", penalties)
 
         # update networks
         for i in range(TRAIN_EPOCHS):
-            update_networks(epi, buf, Pi, V, OPTPi, OPTPi_penalty, OPTV, penalties)
+            update_networks(epi, buf, Pi, V, OPTPi, OPTV)
 
+            for rowLength in all_lengths:
+                # Loop over collected episodes
+
+                OPTPi_penalty.zero_grad()
+                log_probs1 = torch.nn.LogSoftmax(dim=-1)(Pi(S)).gather(1, A.view(-1, 1)).view(-1)
+                log_pi_an_sn = log_probs1[currentIdx: currentIdx + rowLength]
+                G_c_n = constraints[currentIdx: currentIdx + rowLength]
+                I_Gc0_greater_Bi = Is[currentIdx: currentIdx + rowLength]
+                penalty = (I_Gc0_greater_Bi * G_c_n * log_pi_an_sn).sum()
+                penalty.backward()
+                OPTPi_penalty.step()
 
 
         # evaluate
