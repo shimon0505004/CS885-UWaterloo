@@ -92,7 +92,7 @@ def update_networks(epi, buf, Pi, V, OPTPi,OPTPi_penalty, OPTV, penalties):
     # Loop over collected episodes
     for penalty in penalties:
         OPTPi_penalty.zero_grad()
-        penalty_obj = penalty
+        penalty_obj = penalty.clone()
         print("penalty_obj", penalty_obj)
         penalty_obj.backward()
         print("print")
