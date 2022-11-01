@@ -174,14 +174,15 @@ def train(seed):
             for rowLength in all_lengths:
                 # Loop over collected episodes
 
-                OPTPi_penalty.zero_grad()
-                log_probs1 = torch.nn.LogSoftmax(dim=-1)(Pi(S)).gather(1, A.view(-1, 1)).view(-1)
-                log_pi_an_sn = log_probs1[currentIdx: currentIdx + rowLength]
-                G_c_n = constraints[currentIdx: currentIdx + rowLength]
-                I_Gc0_greater_Bi = Is[currentIdx: currentIdx + rowLength]
-                penalty = (I_Gc0_greater_Bi * G_c_n * log_pi_an_sn).sum()
-                penalty.backward()
-                OPTPi_penalty.step()
+                if penalty_param > 0:
+                    OPTPi_penalty.zero_grad()
+                    log_probs1 = torch.nn.LogSoftmax(dim=-1)(Pi(S)).gather(1, A.view(-1, 1)).view(-1)
+                    log_pi_an_sn = log_probs1[currentIdx: currentIdx + rowLength]
+                    G_c_n = constraints[currentIdx: currentIdx + rowLength]
+                    I_Gc0_greater_Bi = Is[currentIdx: currentIdx + rowLength]
+                    penalty = (I_Gc0_greater_Bi * G_c_n * log_pi_an_sn).sum()
+                    penalty.backward()
+                    OPTPi_penalty.step()
 
 
         # evaluate
@@ -220,8 +221,8 @@ if __name__ == "__main__":
     fig.set_figwidth(10)
 
     BETA_PREVIOUS = penalty_param
-    BETA_VALUES = [1, 5, 10]
-    COLOR_VALUES = ['g', 'r', 'k']
+    BETA_VALUES = [0, 1, 5, 10]
+    COLOR_VALUES = ['b', 'g', 'r', 'k']
     for i in range(len(BETA_VALUES)):
         penalty_param = BETA_VALUES[i]
         # Train for different seeds
@@ -232,7 +233,11 @@ if __name__ == "__main__":
             curves += [R]
             curvesc += [Rc]
 
-        label = "ppo-penalty-" + str(penalty_param)
+        if(penalty_param > 0) :
+            label = "ppo-penalty-" + str(penalty_param)
+        else:
+            label = "ppo"
+
         # Plot the curve for the given seeds
         plot_arrays(ax[0], curves, COLOR_VALUES[i], label)
         plot_arrays(ax[1], curvesc, COLOR_VALUES[i], label)

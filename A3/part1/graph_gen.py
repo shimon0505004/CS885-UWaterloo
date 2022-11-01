@@ -8,11 +8,11 @@ if __name__ == "__main__":
     fig.set_figheight(5)
     fig.set_figwidth(10)
 
-    BETA_PREVIOUS = ppopenalty.BETA
+    BETA_PREVIOUS = ppopenalty.penalty_param
     BETA_VALUES = [1, 5, 10]
     COLOR_VALUES = ['g', 'r', 'k']
     for i in range(len(BETA_VALUES)):
-        ppopenalty.BETA = BETA_VALUES[i]
+        ppopenalty.penalty_param = BETA_VALUES[i]
         # Train for different seeds
         curves = []
         curvesc = []
@@ -21,12 +21,12 @@ if __name__ == "__main__":
             curves += [R]
             curvesc += [Rc]
 
-        label = "ppo-penalty-" + str(ppopenalty.BETA)
+        label = "ppo-penalty-" + str(ppopenalty.penalty_param)
         # Plot the curve for the given seeds
         ppopenalty.plot_arrays(ax[0], curves, COLOR_VALUES[i], label)
         ppopenalty.plot_arrays(ax[1], curvesc, COLOR_VALUES[i], label)
 
-    ppopenalty.BETA = BETA_PREVIOUS
+    ppopenalty.penalty_param = BETA_PREVIOUS
 
     # Train for different seeds
     curves = []
