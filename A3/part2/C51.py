@@ -99,10 +99,28 @@ def update_networks(epi, buf, Z, Zt, OPT):
 
     z_min = ZRANGE[0]
     z_max = ZRANGE[1]
-    z_i = torch.arange(z_min, z_max, ((z_max - z_min) / ATOMS)).unsqueeze(0)
+    delta_z = ((z_max - z_min) / ATOMS)
+    z_i = torch.arange(z_min, z_max, delta_z).unsqueeze(0)
     values = (Z(S2).view(len(S2), ACT_N, ATOMS) * z_i).sum(-1)
     greedy_actions = torch.argmax(values,dim=-1)
-    print("action", greedy_actions)
+
+    probabilities = torch.zeros((ATOMS, len(S)))
+
+    for i_prime in range(ATOMS):
+        z_i_prime = z_i.squeeze()[i_prime]
+        tau_z_i_prime = torch.clamp((R + (GAMMA* (1-D)*z_i_prime)), min=z_min,max=z_max)
+        real_index = (tau_z_i_prime - z_min) / delta_z
+        l = torch.floor(real_index)
+        u = torch.ceil(real_index)
+        lowerBound = Z(S2).gather(1, greedy_actions.view(-1, 1)).squeeze() * (1-D) * (u-real_index)
+        upperBound = Z(S2).gather(1, greedy_actions.view(-1, 1)).squeeze() * (1-D) * (real_index-l)
+        probabilities[i_prime] += lowerBound
+        probabilities[i_prime] += upperBound
+        probabilities[i_prime] /= 2
+
+    probabilities = torch.t(probabilities)
+    print("Z(S)",len(Z(S).gather(1,A.view(-1,1))))
+
 
     #qvalues = (Z(S2).view(-1, len(S2), ATOMS) * z_i).sum(dim=-1)
     #print("qvalues",qvalues)
