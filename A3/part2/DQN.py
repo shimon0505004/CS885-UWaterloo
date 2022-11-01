@@ -66,7 +66,7 @@ def policy(env, obs):
 
     global EPSILON, EPSILON_END, STEPS_MAX, Q
     obs = t.f(obs).view(-1, OBS_N)  # Convert to torch tensor
-    
+
     # With probability EPSILON, choose a random action
     # Rest of the time, choose argmax_a Q(s, a) 
     if np.random.rand() < EPSILON:
@@ -74,7 +74,7 @@ def policy(env, obs):
     else:
         qvalues = Q(obs)
         action = torch.argmax(qvalues).item()
-    
+
     # Epsilon update rule: Keep reducing a small amount over
     # STEPS_MAX number of steps, and at the end, fix to EPSILON_END
     EPSILON = max(EPSILON_END, EPSILON - (1.0 / STEPS_MAX))

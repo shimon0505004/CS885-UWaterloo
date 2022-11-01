@@ -69,15 +69,20 @@ def policy(env, obs):
 
     global EPSILON, EPSILON_END, STEPS_MAX, Z
     obs = t.f(obs).view(-1, OBS_N)  # Convert to torch tensor
-    
+
     # With probability EPSILON, choose a random action
     # Rest of the time, choose argmax_a Q(s, a) 
     if np.random.rand() < EPSILON:
         action = np.random.randint(ACT_N)
     else:
-        ## TODO: use Z to compute greedy action
-        pass
-    
+        ## use Z to compute greedy action
+        z_min = ZRANGE[0]
+        z_max = ZRANGE[1]
+        z_i = torch.arange(z_min, z_max, ((z_max - z_min) / ATOMS)).unsqueeze(0)
+        ## Q(s,a) = weighted ensamble of returns
+        qvalues = (Z(obs).view(-1, ATOMS) * z_i).sum(dim=-1)
+        action = torch.argmax(qvalues).item()
+
     # Epsilon update rule: Keep reducing a small amount over
     # STEPS_MAX number of steps, and at the end, fix to EPSILON_END
     EPSILON = max(EPSILON_END, EPSILON - (1.0 / STEPS_MAX))
@@ -89,6 +94,18 @@ def update_networks(epi, buf, Z, Zt, OPT):
     
     loss = 0.
     ## TODO: Implement this function
+
+    S, A, R, S2, D = buf.sample(MINIBATCH_SIZE, t)
+
+    z_min = ZRANGE[0]
+    z_max = ZRANGE[1]
+    z_i = torch.arange(z_min, z_max, ((z_max - z_min) / ATOMS)).unsqueeze(0)
+    values = (Z(S2).view(len(S2), ACT_N, ATOMS) * z_i).sum(-1)
+    greedy_actions = torch.argmax(values,dim=-1)
+    print("action", greedy_actions)
+
+    #qvalues = (Z(S2).view(-1, len(S2), ATOMS) * z_i).sum(dim=-1)
+    #print("qvalues",qvalues)
 
     # Update target network
     if epi%TARGET_NETWORK_UPDATE_FREQ==0:
