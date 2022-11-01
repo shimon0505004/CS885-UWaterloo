@@ -90,6 +90,9 @@ def update_networks(epi, buf, Q, Qt, OPT):
     
     # Get Q(s, a) for every (s, a) in the minibatch
     qvalues = Q(S).gather(1, A.view(-1, 1)).squeeze()
+    print(Q(S))
+    print(A)
+    print(A.view(-1, 1))
 
     # Get max_a' Q(s', a') for every (s') in the minibatch
     q2values = torch.max(Qt(S2), dim = 1).values
