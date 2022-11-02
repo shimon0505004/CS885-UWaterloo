@@ -79,9 +79,11 @@ def policy(env, obs):
         z_min = ZRANGE[0]
         z_max = ZRANGE[1]
         z_i = torch.arange(z_min, z_max, ((z_max - z_min) / ATOMS)).unsqueeze(0)
+
         ## Q(s,a) = weighted ensamble of returns
-        qvalues = (Z(obs).view(-1, ATOMS) * z_i).sum(dim=-1)
+        qvalues = (torch.t(Z(obs).view(-1, ACT_N))*z_i).sum(dim=-1)
         action = torch.argmax(qvalues).item()
+        print("Action", action)
 
     # Epsilon update rule: Keep reducing a small amount over
     # STEPS_MAX number of steps, and at the end, fix to EPSILON_END
