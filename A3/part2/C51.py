@@ -103,8 +103,8 @@ def update_networks(epi, buf, Z, Zt, OPT):
     delta_z = ((z_max - z_min) / ATOMS)
     z_i = torch.arange(z_min, z_max, delta_z).unsqueeze(0)
 
-    p_wbar_Z_s2_a2 = torch.nn.functional.softmax(Zt(S2).view(len(S2), ATOMS, ACT_N), dim=2)
-    values = (torch.transpose(p_wbar_Z_s2_a2,1,2)*z_i).sum(-1)
+    p_wbar_Z_s2_a2 = torch.nn.functional.softmax(torch.transpose((Zt(S2).view(len(S2), ATOMS, ACT_N)), dim0=1,dim1=2), dim=2)
+    values = (p_wbar_Z_s2_a2*z_i).sum(-1)
     greedy_actions = torch.argmax(values,dim=-1)
 
     probabilities = torch.zeros((ATOMS, len(S)))
@@ -117,7 +117,7 @@ def update_networks(epi, buf, Z, Zt, OPT):
         l = torch.floor(real_index)
         u = torch.ceil(real_index)
 
-        gatheredValue = torch.nn.functional.softmax(Zt(S2).view(len(S2), ATOMS, ACT_N)[:,i_prime,:], dim=1).gather(1, greedy_actions.view(-1, 1)).squeeze()
+        gatheredValue = torch.nn.functional.softmax(Zt(S2).view(len(S2), ATOMS, ACT_N)[:,i_prime,:], dim=0).gather(1, greedy_actions.view(-1, 1)).squeeze()
 
         lowerBound = gatheredValue * (1-D) * (u-real_index)
         upperBound = gatheredValue * (1-D) * (real_index-l)
@@ -129,10 +129,8 @@ def update_networks(epi, buf, Z, Zt, OPT):
     probabilities = torch.t(probabilities)
 
     #For doing vector operation, selecting actions later
-    logs = torch.log((torch.nn.functional.softmax(Zt(S).view(len(S), ATOMS, ACT_N), dim=2))+ 1e-08)
+    logs = torch.log((torch.nn.functional.softmax(Zt(S).view(len(S), ATOMS, ACT_N), dim=1))+ 1e-08)
     loss = torch.mean(-1*torch.transpose(logs*probabilities.view(len(S), ATOMS,1),1,2).sum(-1).gather(1, A.view(-1, 1)).squeeze())
-
-    print("Loss: ", loss)
 
     OPT.zero_grad()
     loss.backward()
