@@ -80,9 +80,8 @@ def policy(env, obs):
         z_max = ZRANGE[1]
         z_i = torch.arange(z_min, z_max, ((z_max - z_min) / ATOMS)).unsqueeze(0)
 
-
         ## Q(s,a) = weighted ensamble of returns
-        qvalues = (torch.t(torch.nn.functional.softmax(Z(obs).view(-1, ACT_N), dim=1))*z_i).sum(dim=-1)
+        qvalues = ((torch.nn.functional.softmax(torch.t(Z(obs).view(-1, ACT_N)), dim=1)*z_i).sum(dim=-1))
         action = torch.argmax(qvalues).item()
 
     # Epsilon update rule: Keep reducing a small amount over
@@ -132,6 +131,8 @@ def update_networks(epi, buf, Z, Zt, OPT):
     #For doing vector operation, selecting actions later
     logs = torch.log((torch.nn.functional.softmax(Zt(S).view(len(S), ATOMS, ACT_N), dim=2))+ 1e-08)
     loss = torch.mean(-1*torch.transpose(logs*probabilities.view(len(S), ATOMS,1),1,2).sum(-1).gather(1, A.view(-1, 1)).squeeze())
+
+    print("Loss: ", loss)
 
     OPT.zero_grad()
     loss.backward()
