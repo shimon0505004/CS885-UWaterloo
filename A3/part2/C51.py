@@ -80,10 +80,10 @@ def policy(env, obs):
         z_max = ZRANGE[1]
         z_i = torch.arange(z_min, z_max, ((z_max - z_min) / ATOMS)).unsqueeze(0)
 
+
         ## Q(s,a) = weighted ensamble of returns
-        qvalues = (torch.t(Z(obs).view(-1, ACT_N))*z_i).sum(dim=-1)
+        qvalues = (torch.t(torch.nn.functional.softmax(Z(obs).view(-1, ACT_N), dim=1))*z_i).sum(dim=-1)
         action = torch.argmax(qvalues).item()
-        print("Action", action)
 
     # Epsilon update rule: Keep reducing a small amount over
     # STEPS_MAX number of steps, and at the end, fix to EPSILON_END
@@ -94,7 +94,7 @@ def policy(env, obs):
 # Update networks
 def update_networks(epi, buf, Z, Zt, OPT):
     
-    loss = 0.
+    #loss = 0.
     ## TODO: Implement this function
 
     S, A, R, S2, D = buf.sample(MINIBATCH_SIZE, t)
@@ -104,16 +104,12 @@ def update_networks(epi, buf, Z, Zt, OPT):
     delta_z = ((z_max - z_min) / ATOMS)
     z_i = torch.arange(z_min, z_max, delta_z).unsqueeze(0)
 
-    print("Z(S2).view(len(S2), ATOMS, ACT_N)", Z(S2).view(len(S2), ATOMS, ACT_N))
-
-
-    values = (Z(S2).view(len(S2), ATOMS, ACT_N) * z_i).sum(-1)
-    print("Values", values)
+    p_wbar_Z_s2_a2 = torch.nn.functional.softmax(Zt(S2).view(len(S2), ATOMS, ACT_N), dim=2)
+    values = (torch.transpose(p_wbar_Z_s2_a2,1,2)*z_i).sum(-1)
     greedy_actions = torch.argmax(values,dim=-1)
 
     probabilities = torch.zeros((ATOMS, len(S)))
 
-    print("greedy_actions", len(greedy_actions))
 
     for i_prime in range(ATOMS):
         z_i_prime = z_i.squeeze()[i_prime]
@@ -122,40 +118,30 @@ def update_networks(epi, buf, Z, Zt, OPT):
         l = torch.floor(real_index)
         u = torch.ceil(real_index)
 
-        customView = Z(S2).view(len(S2), ACT_N, ATOMS)
-        list = []
-        for i in range(len(greedy_actions)):
-            data = customView[i][greedy_actions[i]][i_prime]
-            list.append(data)
+        gatheredValue = torch.nn.functional.softmax(Zt(S2).view(len(S2), ATOMS, ACT_N)[:,i_prime,:], dim=1).gather(1, greedy_actions.view(-1, 1)).squeeze()
 
-        collectedList = torch.as_tensor(list)
-        print("collectedList", collectedList)
-
-        view3 =  Z(S2).gather(1, i_prime*greedy_actions.view(-1, 1)).squeeze()
-        print("view3",view3)
-        #trial2 = torch.gather(customView,1,)
-        #print(trial2)
-
-        #print("i_prime",i_prime,"Z(S2,Action,i_prime)",customView,customView[0][1][i_prime])
-
-        lowerBound = Z(S2).gather(1, greedy_actions.view(-1, 1)).squeeze() * (1-D) * (u-real_index)
-        upperBound = Z(S2).gather(1, greedy_actions.view(-1, 1)).squeeze() * (1-D) * (real_index-l)
+        lowerBound = gatheredValue * (1-D) * (u-real_index)
+        upperBound = gatheredValue * (1-D) * (real_index-l)
         probabilities[i_prime] += lowerBound
         probabilities[i_prime] += upperBound
+
         probabilities[i_prime] /= 2
 
     probabilities = torch.t(probabilities)
-    print("Z(S)",Z(S2).view(len(S2), ACT_N, ATOMS))
 
+    #For doing vector operation, selecting actions later
+    logs = torch.log((torch.nn.functional.softmax(Zt(S).view(len(S), ATOMS, ACT_N), dim=2))+ 1e-08)
+    loss = torch.mean(-1*torch.transpose(logs*probabilities.view(len(S), ATOMS,1),1,2).sum(-1).gather(1, A.view(-1, 1)).squeeze())
 
-    #qvalues = (Z(S2).view(-1, len(S2), ATOMS) * z_i).sum(dim=-1)
-    #print("qvalues",qvalues)
+    OPT.zero_grad()
+    loss.backward()
+    OPT.step()
 
     # Update target network
     if epi%TARGET_NETWORK_UPDATE_FREQ==0:
         Zt.load_state_dict(Z.state_dict())
 
-    return loss
+    return loss.item()
 
 
 # Play episodes
