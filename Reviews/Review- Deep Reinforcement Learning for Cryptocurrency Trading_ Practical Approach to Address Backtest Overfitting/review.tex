@@ -1,0 +1,71 @@
+\documentclass[twoside,11pt]{article}
+
+% Any additional packages needed should be included after jmlr2e.
+% Note that jmlr2e.sty includes epsfig, amssymb, natbib and graphicx,
+% and defines many common macros, such as 'proof' and 'example'.
+%
+% It also sets the bibliographystyle to plainnat; for more information on
+% natbib citation styles, see the natbib documentation, a copy of which
+% is archived at http://www.jmlr.org/format/natbib.pdf
+
+\usepackage{jmlr2e}
+
+% Definitions of handy macros can go here
+
+\newcommand{\dataset}{{\cal D}}
+\newcommand{\fracpartial}[2]{\frac{\partial #1}{\partial  #2}}
+
+% Heading arguments are {volume}{year}{pages}{submitted}{published}{author-full-names}
+
+\jmlrheading{1}{2022}{1-48}{4/00}{10/00}{Shaikh Shawon Arefin Shimon}
+
+% Short headings should be running head and authors last names
+
+\ShortHeadings{Review}{Arefin Shimon}
+\firstpageno{1}
+
+\begin{document}
+
+\title{Review: ``Deep Reinforcement Learning for Cryptocurrency Trading:
+Practical Approach to Address Backtest Overfitting" (\cite{https://doi.org/10.48550/arxiv.2209.05559})}
+
+\author{\name Shaikh Shawon Arefin Shimon \email ssarefin@uwaterloo.ca \\
+       \addr Department of Computer Science\\
+       University of Waterloo\\
+       Waterloo, ON N2L 3G1, Canada}
+
+\editor{Leslie Pack Kaelbling}
+
+\maketitle
+
+\begin{abstract}%   <- trailing '%' for backward compatibility of .sty file
+Cryptocurrency trading is not a Independent and identically distributed (IID) process, and Deep Reinforcement Learning (DRL) algorithms are highly sensitive to hyperparameters. Due to both of these factors, overfitting in backtest in DRL approaches for Cryptocurrency trading could not be avoided. The reviewed paper presents a way to detect backtest overfitting in DRL methods in Cryptocurrency trading. The contribution of this work is to avoid overfitting in training session while designing new DRL approaches in order to design profitable and reliable Crypto trading strategy. Authors evaluate their approach to compare between some baseline DRL based Crypto trading approaches, and show that DRL approaches with less backtest overfitting result in higher cumulative return in their experiments. This underscores the importance of quantitatively detecting backtest overfitting and pruning out bad DRL agents in in designing a superior Cryptocurrency trading agent. Although this work is a derivative work mostly built on earlier work of \cite{bailey2016probability} in general financial markets domain - no such work has been extended to Cryptocurrency trading market before.
+\end{abstract}
+
+\section{Significance \& Originality}
+Previous work on the application of Deep Reinforcement Learning (DRL) approaches for Cryptocurrency trading focused on DRL algorithm performance, while not addressing backtest overfitting issue - treating random fluctuations in the training data as concepts. This work focuses on estimating probablity of backtest overfitting in a DRL approach for Cryptocurrency trading - which can then be used to identify overfitted DRL agents that could be rejected for real-world trading. Although \cite{bailey2016probability} addresses a way to measure probability of backtest overfitting in general stock market - the extensibility of the concept has not been explored to Cryptocurrency trading financial markets. 
+
+This work builds upon \cite{bailey2016probability} concept and combines Neyman-Pearson framework to devise a hypothesis testing to reject bad DRL agents in Cryptocurrency trading. Previously, no such work has been done to address backtest overfitting issue in DRL agents in Cryptocurrency trading - which points to the original application of approach taken by \cite{bailey2016probability}. From the evaluation, it is evident that this approach can identify better DRL agents in Cryptocurrency trading, resulting in a potentially production-ready agent for algorithmic trading and having significant financial application. 
+
+One downside of this paper is not proposing anything new beyond adding a Hypothesis test to prune out overfitted agents. The bulk of this paper is applying an already known approach to a new, unexplored domain. 
+
+\section{Soundness}
+
+This paper is an application of PBO concept \cite{bailey2016probability} in Crypto trading domain, and the algorithm or mathematical proof is not entirely new.  No obvious flaws in the proofs or algorithms could be identified, and the idea presented seem to be technically correct.
+
+\section{Evaluation}
+
+The idea of identifying conventional and overfitted agents is empirically evaluated through an experiment, and the backtest performance shows that the identified agent with least overfitting has the best cumulative return out of all conventional and DRL agents in evaluation. This supports the suitability of the approach to identify better DRL agents. The approach makes no assumption about IID processes in Crypto trading. However, scalability of the approach is not clearly demonstrated, and the authors run the experiment on a small data volume. It is unclear if the approach scales well when the data points have been increased to account for more historical data. 
+
+\section{Related Work}
+
+The paper has a dedicated related work section on backtesting in various financial markets and problems with walk-forward, cross-validation and hyperparameter tuning in backtest. The introduction explains how the presented work fit into the Cryptocurrency trading world, and what problem does it uniquely address. In section 4, it explains how \cite{bailey2016probability} approach extended to build a hypothesis test for Cryptocurrency trading agent pruning. The authors do a great job of explaining similarities and differences with previous work in related area.   
+
+\section{Readability}
+
+The paper is structured well without any major typo or grammatical errors. The abstract summarizes the work properly - and addresses the major contributions of this paper. The flow of the ideas were easy to follow. Technical terms and abbreviations were properly explained in different sections. In general, the paper was a good read. The authors do address the future direction of their research and address shortcomings with the scale of the data volume. 
+
+\vskip 0.2in
+\bibliography{bibliography1}
+
+\end{document}

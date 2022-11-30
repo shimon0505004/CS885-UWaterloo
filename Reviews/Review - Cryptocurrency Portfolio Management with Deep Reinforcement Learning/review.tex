@@ -1,0 +1,70 @@
+\documentclass[twoside,11pt]{article}
+
+% Any additional packages needed should be included after jmlr2e.
+% Note that jmlr2e.sty includes epsfig, amssymb, natbib and graphicx,
+% and defines many common macros, such as 'proof' and 'example'.
+%
+% It also sets the bibliographystyle to plainnat; for more information on
+% natbib citation styles, see the natbib documentation, a copy of which
+% is archived at http://www.jmlr.org/format/natbib.pdf
+
+\usepackage{jmlr2e}
+
+% Definitions of handy macros can go here
+
+\newcommand{\dataset}{{\cal D}}
+\newcommand{\fracpartial}[2]{\frac{\partial #1}{\partial  #2}}
+
+% Heading arguments are {volume}{year}{pages}{submitted}{published}{author-full-names}
+
+\jmlrheading{1}{2022}{1-48}{4/00}{10/00}{Shaikh Shawon Arefin Shimon}
+
+% Short headings should be running head and authors last names
+
+\ShortHeadings{Review}{Arefin Shimon}
+\firstpageno{1}
+
+\begin{document}
+
+\title{Review: ``Cryptocurrency Portfolio Management with Deep Reinforcement Learning" (\cite{8324237})}
+
+\author{\name Shaikh Shawon Arefin Shimon \email ssarefin@uwaterloo.ca \\
+       \addr Department of Computer Science\\
+       University of Waterloo\\
+       Waterloo, ON N2L 3G1, Canada}
+
+\editor{Leslie Pack Kaelbling}
+
+\maketitle
+
+%The approach taken by \cite{8324237} in the referred paper does not rely on knowledge of financial markets or financial modelling. The proposed approach tries to leverage RL to learn from financial market history to predict optimal future product mix in order to build a model-less approach for portfolio management. The authors address the shortcomings with deep Q-learning and Critic-actor Deterministic policy gradient for solving portfolio management by proposing to replace Q-function estimation by a direct reward function using price change vector.
+
+
+\begin{abstract}%   <- trailing '%' for backward compatibility of .sty file
+The reviewed paper presents a model-less CNN leveraging reinforcement learning for portfolio management in Cryptocurrency financial market. The authors replace traditional Q-Function in RL with price-change vector based reward function approach, making the approach extendable to other financial markets as well. Experiments performend by the authors show 10-fold return compared to standard portfolio management. However, the veracity and volume of the training data, as well as the initial assumptions can put some of their findings regarding chosen approach in question.
+\end{abstract}
+
+\section{Significance \& Originality}
+The optimization approach taken by \cite{8324237} replacing Q-function estimation by price-change vector based optimization is novel, and is not Cryptocurrency specific. Before the publication of this paper in 2017, portfolio management in Cryptocurrency was a relatively unexplored area. A major significance of the work that the approach extendable to other traditional financial products. However, the dataset issues (discussed in Evaluation section) and the assumptions made regarding the financial market make this work significant only for trading small, insignificant amounts of financial product mix. Also, the authors point that the proposed approach do not outperform all known approaches, such as PAMR (Passive Aggressive Mean Reversion). As such, although original - the reviewer is unsure about the significance about this work. One way to address the dataset and assumption issue is to perform the evaluation in traditional financial portfolio management and compare the results with the state of the art results in those financial platforms.
+
+\section{Soundness}
+
+The authors explain the generalizability of their proposed approach of leveraging price movement and volume of financial product, and the reasoning behind choosing Cryptocurrency product platform. The mathematical reasoning behind the direct reward function seems easy to understand and well-reasoned. Going through the mathematical deduction and algorithm, no flaws became apparent to question the soundness of the proposed approach.
+
+\section{Evaluation}
+
+The proposed approach has been empirically evaluated against several other benchmarks and other portfolio management approaches in the same Cryptocurrency platform to provide a comparative analysis. However, the assumption made by the authors regarding market liquidity and capital impact could be questioned. It is not guaranteed that in Crypto exchange, large volume tradings to influence the market will not be made. Trading in volumes to affect financial market is not extremely uncommon. Another major issue is fake historical altcoin data with decay rate used to account for a lot of new altcoin's time of entry to the financial market. The low volume of historical data, coupled with the veracity of the data does affect the reliability of the findings. Also, in the evaluation, the scalability of the solution has not been demonstrated. The authors make the basic assumption that the model will fail if the trades are large enough to influence the market - making the proposed solution unscalable beyond a product volume threshold. Another issue is the k-fold cross-validation approach in evaluation.  Cryptocurrency trading process, or any financial task can not be described by Independent and identically distributed random variables (IID), and there is a time-series momentum effect in crypto returns. This can result in a false positive agent, and the results may not be reproducible. \\
+One way to counter the shortcomings of the work in question is to re-perform the study again with data from 2017 to 2022, which can mitigate the missing historical data from a lot of the Altcoins in question. This can establish the validity of the authors findings or present new insights in the structure of the proposed neural network. Also, comparing the approach on traditional stock market portfolio management could address the historical data issue, as well as test the authors claim on extensibility of the approach. 
+
+\section{Related Work}
+
+One weak point of the paper in the opinion of this reviewer is the related work section. The paper briefly touches upon reinforcement learning in portfolio management in the introduction section. RL in portfolio management has been a well-studied problem before the publication of this paper. A more comprehensive and separate literature survey section focusing in RL in financial portfolio, and more depth in explaining similarities and differences with previous RL works in this domain would have been beneficial to compare and analyze the technical soundness of the proposed approach. 
+
+\section{Readability}
+
+The paper is well structured with clear summary in abstract and clear explaination of problem space in introduction. The conclusion clearly reflects the shortcomings and potential future work scope. The flow of the idea is easy to follow. Appendix and different sections does a proper job to explain the financial terms and problem space to the readers, as well as the presenting comparison of proposed approach with benchmarks and other portfolio management approaches. The paper does not have significant grammatical errors or typos which could be noticed, and seems to have gone through rigorous proofreading. 
+
+\vskip 0.2in
+\bibliography{bibliography1}
+
+\end{document}
